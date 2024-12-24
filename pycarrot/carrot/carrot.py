@@ -1,8 +1,8 @@
 """
 The carrot is the core of the this NN framework.
-1. basic data type
-    - build Computational graphs
-    - BP by Computational graphs 
+Carrot class object is the basic data type of nn framwork.
+1. build Computational graphs
+2. BP by Computational graphs 
 """
 
 import numpy as np

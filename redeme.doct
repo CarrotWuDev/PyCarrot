@@ -1,0 +1,266 @@
+<h1 id="pycarrot-机器学习框架">PyCarrot 机器学习框架</h1>
+<p>项目地址：<a href="https://github.com/CarrotWuDev/PyCarrot"
+class="uri">https://github.com/CarrotWuDev/PyCarrot</a></p>
+<h2 id="前言">前言</h2>
+<p>笔者的研究方向是人工智能方向。笔者在研究生第一学期学习了《机器学习》这门课程，在学习本门课程的过程中，笔者接触了<code>PyTorch</code>这个深度学习框架，<code>PyTorch</code>让整个深度学习过程变得非常简单，开发者不需要关注框架本身的细节，只需要关注数据科学本身。</p>
+<p>笔者也是在学习搭建神经网络的过程中了解到深度学习最重要的算法——<strong>反向传播算法</strong>，该算法也是深度学习的核心，正是该算法推动了深度学习的发展。</p>
+<p>后面在《高级算法设计》这门课程中，笔者也是实现了反向传播算法，并在课程上分享了该算法。</p>
+<figure>
+<img src="image.png" alt="高级算法设计讲解" />
+<figcaption aria-hidden="true">高级算法设计讲解</figcaption>
+</figure>
+<p>既然笔者已经实现了深度学习的核心——BP算法，那么笔者就在BP算法的基础上构建了一个机器学习框架<code>PyCarrot</code>.
+&gt;
+笔者的英文名是<code>CarrotWu</code>，所以就将该机器学习框架命名为<code>PyCarrot</code>。</p>
+<h2 id="反向传播算法自动微分">反向传播算法（自动微分）</h2>
+<h3 id="反向传播算法的介绍">反向传播算法的介绍</h3>
+<p>反向传播的是在动微分在工程上的实现。其本质就是利用链式求导法则，从计算结果开始，将微分反向传播到各个计算节点（如<code>PyTorch</code>中的<code>Tensor</code>数据类型）。接着使用梯度对各个参数节点进行更新（优化算法），经过这样的过程，我们的模型在特定数据上会呈现<code>optimum</code>。</p>
+<p>以表达式<code>z = x + y</code>为例：</p>
+<figure>
+<img src="image-1.png" alt="alt text" />
+<figcaption aria-hidden="true">alt text</figcaption>
+</figure>
+<h3 id="反向传播算法的实现">反向传播算法的实现</h3>
+<h3 id="常量版本不涉及矩阵运算">常量版本（不涉及矩阵运算）</h3>
+<h4 id="知识铺垫">知识铺垫</h4>
+<p>在<code>Pytorch</code>中<code>Tensor</code>数据类型构建了反向传播算法的基础。因为<code>Tensor class</code>不仅存储着数据本身，还存储着<strong>如何传递梯度？</strong>的信息。</p>
+<p>主要就是一下两个字段：</p>
+<ol type="1">
+<li><code>self.grad</code>：节点的梯度信息。</li>
+<li><code>self.grad_func</code>：节点的梯度该如何传递到子节点，即计算子节点的梯度的函数（数学上的链式法则）。</li>
+</ol>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Tensor(<span class="bu">object</span>):</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.data</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.grad</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.grad_func</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    ...</span></code></pre></div>
+<p>以表达式<code>z = x * y</code>为例，我们来说明一下上面两个字段。</p>
+<p>假设计算节点<code>z</code>的<code>grad=a</code>，而<code>z</code>由计算节点<code>x</code>和<code>y</code>进行乘法运算得到，那么<code>z</code>的<code>grad_func</code>就存储着<code>z</code>的<code>grad</code>如何传递给<code>x</code>和<code>y</code>传递方式。所以<code>grad_func=[(x, grad_wrt_x), (y, grad_wrt_y)]</code>。</p>
+<p><code>grad_wrt_x</code>用数学表示是这样：</p>
+<p><span class="math display">$$\frac{\partial z}{\partial
+x}=a*y$$</span></p>
+<p><code>grad_wrt_y</code>用数学表示是这样：</p>
+<p><span class="math display">$$\frac{\partial z}{\partial
+y}=a*x$$</span></p>
+<p>用<code>Python</code>代码实现是下面这样：</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> grad_wrt_x(grad):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> grad<span class="op">*</span>y</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> grad_wrt_y(grad):</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> grad<span class="op">*</span>x</span></code></pre></div>
+<h4 id="代码实现">代码实现</h4>
+<p>下面是<code>Carrot</code>类的实现：</p>
+<p>首先是<code>Carrot</code>类的一些属性</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Carrot():</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> __init(<span class="va">self</span>, data, requires_grad<span class="op">=</span><span class="va">False</span>, child_nodes<span class="op">=</span>[], name<span class="op">=</span><span class="va">None</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.data <span class="op">=</span> data <span class="co"># Carrot实例中所存储的数据</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.child_nodes <span class="op">=</span> child_nodes <span class="co"># 子节点信息，相当于Tensor中的grad_func，其值默认为空</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.name <span class="op">=</span> name <span class="co"># 节点的标识信息</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.grad <span class="op">=</span> <span class="va">None</span> <span class="co"># 节点的梯度</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.requires_grad <span class="op">=</span> requires_grad <span class="co"># 当前节点是否需要计算梯度</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span></code></pre></div>
+<p>在我们了解了节点的重要信息之后，我们需要用节点来构建表达式。</p>
+<p>下面我以乘法为例 <span
+class="math inline"><em>z</em> = <em>x</em> × <em>y</em></span></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">2.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;x&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">4.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;y&quot;</span>)</span></code></pre></div>
+<p>可是<code>Carrot</code>节点之间是如何实现乘法<code>z = x * y</code>的呢？</p>
+<p>先给出结论：</p>
+<ol type="1">
+<li>实现<code>Carrot</code>实例内部数据之间的乘法。</li>
+<li>构建<code>z</code>节点的依赖信息<code>child_nodes</code></li>
+<li>根据运算得到的内容构建新的<code>Carrrot</code>实例<code>z</code></li>
+</ol>
+<p>下面是伪代码：</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>result_data <span class="op">=</span> x.data <span class="op">*</span> y.data</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>child_nodes <span class="op">=</span> [(x, grad_wrt_x), (y, grad_wrt_y)]</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>requires_grad <span class="op">=</span> x.requires_grad <span class="kw">or</span> y.requires_grad</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> Carrot(result_data, child_nodes, requires_grad, name<span class="op">=</span><span class="st">&quot;add&quot;</span>)</span></code></pre></div>
+<blockquote>
+<p>注意：使用运算符重载实现</p>
+</blockquote>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">__mul__</span>(<span class="va">self</span>, other: <span class="st">&quot;Carrot&quot;</span>) <span class="op">-&gt;</span> <span class="st">&quot;Carrot&quot;</span>:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">    left mul: self * other</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> <span class="va">self</span>.data <span class="op">*</span> other.data</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    requires_grad <span class="op">=</span> <span class="va">self</span>.requires_grad <span class="kw">or</span> other.requires_grad</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    child_nodes <span class="op">=</span> []</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="va">self</span>.requires_grad:</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">def</span> grad_wrt_self(grad):</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> grad <span class="op">*</span> other.data</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        child_nodes.append((<span class="va">self</span>, grad_wrt_self))</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> other.requires_grad:</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">def</span> grad_wrt_other(grad):</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> grad <span class="op">*</span> <span class="va">self</span>.data</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        child_nodes.append((other, grad_wrt_other))</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    result_node <span class="op">=</span> Carrot(</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        data<span class="op">=</span>data, child_nodes<span class="op">=</span>child_nodes, name<span class="op">=</span><span class="st">&quot;mul&quot;</span>, requires_grad<span class="op">=</span>requires_grad</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result_node</span></code></pre></div>
+<p>我们测试一下</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">2.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;x&quot;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">4.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;y&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> x <span class="op">+</span>  y</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.data)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.requires_grad)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.grad)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.name)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.child_nodes[<span class="dv">0</span>][<span class="dv">0</span>])</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.child_nodes[<span class="dv">0</span>][<span class="dv">1</span>])</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.child_nodes[<span class="dv">1</span>][<span class="dv">0</span>])</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(z.child_nodes[<span class="dv">1</span>][<span class="dv">1</span>])</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="op">---</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="fl">8.0</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="va">True</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="dv">0</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>mul</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>__main__.Carrot <span class="bu">object</span> at <span class="bn">0x000001B5F0A44AA0</span><span class="op">&gt;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>function Carrot.<span class="fu">__mul__</span>.<span class="op">&lt;</span><span class="bu">locals</span><span class="op">&gt;</span>.grad_wrt_self at <span class="bn">0x000001B5F0DB6FC0</span><span class="op">&gt;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>__main__.Carrot <span class="bu">object</span> at <span class="bn">0x000001B5F0E0EE10</span><span class="op">&gt;</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>function Carrot.<span class="fu">__mul__</span>.<span class="op">&lt;</span><span class="bu">locals</span><span class="op">&gt;</span>.grad_wrt_other at <span class="bn">0x000001B5F0DB7380</span><span class="op">&gt;</span></span></code></pre></div>
+<p>既然实现了乘法<code>z = x * y</code>，那么我们对<code>z</code>应用反向传播算法进行梯度计算。</p>
+<p>笔者实现的反向传播主要做了以下几件事：</p>
+<ol type="1">
+<li>计算当前节点<code>z</code>的梯度，即设置为<code>1</code>。</li>
+<li>遍历当前节点<code>z</code>的<code>child_nodes:list</code>，通过当前节点的<code>grad</code>和<code>grad_wrt_operand()</code>计算子姐弟那的梯度。接着调用子节点<code>bp()</code>将其<code>grad</code>递归传递到叶子节点。</li>
+<li>做的是深度优先遍历。</li>
+</ol>
+<p>可能比较难理解，给出图示加深理解</p>
+<figure>
+<img src="image-3.png" alt="alt text" />
+<figcaption aria-hidden="true">alt text</figcaption>
+</figure>
+<p>下面是具体的代码实现：</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> backward(<span class="va">self</span>, grad<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">    backward pass</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> grad <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.grad <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        grad <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.grad <span class="op">+=</span> grad</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># recursion for bp</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> child_node, grad_wrt_func <span class="kw">in</span> <span class="va">self</span>.child_nodes:</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        child_node: Carrot</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        child_node_grad <span class="op">=</span> grad_wrt_func(</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>            grad</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        )  <span class="co"># calculate partial grad, in the following bp, need to add partial grad</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        child_node.backward(child_node_grad)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code></pre></div>
+<p>我详细解释一下下面一段代码：</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> grad <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.grad <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    grad <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.grad <span class="op">+=</span> grad</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code></pre></div>
+<p>既然当前节点能够运行<code>BP</code>算法，并且<code>if grad is None:</code>说明是从当前当前节点开始反向传播的，那么要设置当前节点的梯度为<code>1.0</code>，即<code>self.grad=1.0</code>，还要将<strong>要传递的梯度</strong>设置为<code>1.0</code>，即<code>grad=1.0</code>。如果要传递的梯度不为<code>None</code>,则要进行<code>self.grad+=grad</code>，为什么？</p>
+<figure>
+<img src="image-4.png" alt="alt text" />
+<figcaption aria-hidden="true">alt text</figcaption>
+</figure>
+<p>从数学的角度来理解，<strong>即某一个变量可以分不同的路径对结果变量造成影响/改变</strong>，而反向传播每一次是按照一条路径传播梯度的，那么要计算某一个节点的梯度/影响，则要将该变量在每一条路径梯度/影响加和来计算总的梯度/梯度。</p>
+<p>我们实现了<code>Carrot</code>类以及对该类的运算和反向传播，下面进行测试。</p>
+<p>测试1：</p>
+<p><span class="math display">$$
+z = x\times y\\
+\text{Get:} \frac{\partial z}{\partial x}, \frac{\partial z}{\partial y}
+$$</span></p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">2.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;x&quot;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">4.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;y&quot;</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> x <span class="op">*</span>  y</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>z.backward()</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;z.grad=</span><span class="sc">{</span>z<span class="sc">.</span>grad<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;y.grad=</span><span class="sc">{</span>y<span class="sc">.</span>grad<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;x.grad=</span><span class="sc">{</span>x<span class="sc">.</span>grad<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="op">---</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>z.grad<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>y.grad<span class="op">=</span><span class="fl">2.0</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>x.grad<span class="op">=</span><span class="fl">4.0</span></span></code></pre></div>
+<p>测试2： <span class="math display">$$
+a = 2\\
+x = 2 \times a\\
+y = 3 \times a\\
+z = x + y\\
+\text{Get}: \frac{\partial z}{\partial a}
+$$</span></p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">1.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>, name<span class="op">=</span><span class="st">&quot;a&quot;</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>coefficient1 <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">2.0</span>, requires_grad<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>coefficient2 <span class="op">=</span> Carrot(data<span class="op">=</span><span class="fl">3.0</span>, requires_grad<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> a<span class="op">*</span>coefficient1 <span class="op">+</span> a <span class="op">*</span> coefficient2</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>z.backward()</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;z.grad=</span><span class="sc">{</span>z<span class="sc">.</span>grad<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;a.grad=</span><span class="sc">{</span>a<span class="sc">.</span>grad<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>z.zero_grad()</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="op">---</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>z.grad<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>a.grad<span class="op">=</span><span class="fl">5.0</span></span></code></pre></div>
+<p>至此，常量版本的<code>BP</code>算法已经实现，下面我们会在常量版本的基础上构建张量版本的<code>BP</code>算法。</p>
+<h3 id="张量版本">张量版本</h3>
+<h4 id="要点非常重要"><strong>要点（非常重要）</strong></h4>
+<p><strong>要点1：使用<code>Numpy</code>来表示<code>Carrot</code>的<code>data</code>属性</strong>
+使用<code>python</code>中<code>loop</code>来实现的同样维度的矩阵乘法，速度在<code>minute</code>级别。</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> np.zeros((size,size))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(size):</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(size):</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(size):</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>      c[i,j] <span class="op">+=</span> a[i,k] <span class="op">*</span> b[k,j]</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">pass</span></span></code></pre></div>
+<p>使用<code>numpy</code>来实现矩阵乘法，速度在<code>ms</code>级别。</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>size <span class="op">=</span> <span class="dv">600</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.random.rand(size, size)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> np.random.rand(size, size)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> numpy.dot(a,b)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fl">8.63</span> ms ± <span class="fl">2.2</span> ms per loop (mean ± std. dev. of <span class="dv">7</span> runs, <span class="dv">1</span> loop each)</span></code></pre></div>
+<p><strong>要点2：
+某个张量的梯度的<code>shape</code>是和其张量的<code>shape</code>是一样的。</strong></p>
+<p>举个例子</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>grad_a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># a.shape = grad_a.shape = (3,)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> [[<span class="dv">1</span>], [<span class="dv">2</span>], [<span class="dv">3</span>]]</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> [[<span class="dv">1</span>], [<span class="dv">1</span>], [<span class="dv">1</span>]]</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co"># b.shape = grad_b.shape = (3, 1)</span></span></code></pre></div>
+<p><strong>要点3：矩阵微分</strong>
+在本框架的实现中，我们使用了两个矩阵微分。</p>
+<blockquote>
+<p><code>grad</code>是父节点传播过来的梯度。</p>
+</blockquote>
+<p>$$ S = AB\ = B^T\</p>
+<p> = A^T $$</p>
+<p>请查阅书籍《The Martrix Cookbook》获取更多矩阵微分相关的信息：<a
+href="https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf"
+class="uri">https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf</a></p>
+<h4 id="section"></h4>
