@@ -15,8 +15,7 @@ class Module():
 
     def forward(self, *args, **kwds):
         """
-        forward propagation for get predicted result.
-        abstract method, must build in a subclass.
+        must build in a subclass.
         """
         pass
 

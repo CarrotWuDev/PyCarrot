@@ -36,6 +36,7 @@ def softmax(operand: Carrot) -> Carrot:
     requires_grad = operand.requires_grad
     child_nodes = []
     if requires_grad:
+
         def grad_wrt_operand(grad: np.ndarray) -> np.ndarray:
             s = result_data.reshape(-1, 1)
             current_operand_grad = (s * (np.eye(s.shape[0]) - s.T)) * grad
@@ -140,63 +141,3 @@ def mse_loss(predicted: Carrot, target: Carrot) -> Carrot:
 
 def cross_entropy_loss(predicted: Carrot, target: Carrot) -> Carrot:
     pass
-
-
-if __name__ == "__main__":
-    # test sigmoid
-    # x = np.array([1, 2])
-    # x = Carrot(x, requires_grad=True, name="x")
-    # y = sigmoid(x)
-    # print(x.data)
-    # print("---------------")
-    # print(y.data)
-    # y.backward()
-    # print("---------------")
-    # print(y.grad.data)
-    # print("---------------")
-    # print(x.grad.data)
-
-    # test relu
-    # x = np.array([[-1, 2, 3], [1, -1, 3], [1, 2, -1]])
-    # x = Carrot(x, requires_grad=True, name="x")
-    # y = relu(x)
-    # print(x.data)
-    # print("---------------")
-    # print(y.data)
-    # y.backward()
-    # print("---------------")
-    # print(y.grad.data)
-    # print("---------------")
-    # print(x.grad.data)
-
-    # test softmax
-    x = np.array([1, 2, 3, 4])
-    x = Carrot(x, requires_grad=True, name="x")
-    y = softmax(x)
-    print(x.data)
-    print("---------------")
-    print(y.data)
-    y.backward()
-    print("---------------")
-    print(y.grad.data)
-    print("---------------")
-    print(x.grad.data)
-
-    # test mse_loss
-    # target = np.array([[1], [2], [3]])
-    # target = Carrot(target, requires_grad=True)
-    # pred = np.array([[1.5], [2.5], [3.5]])
-    # pred = Carrot(pred, requires_grad=True)
-    # loss = mse_loss(predicted=pred, target=target)
-    # print(target.data)
-    # print("--------------------")
-    # print(pred.data)
-    # print("--------------------")
-    # print(loss.data, loss.name)
-    # loss.backward()
-    # print("--------------------")
-    # print(loss.grad.data)
-    # print("--------------------")
-    # print(target.grad.data)
-    # print("--------------------")
-    # print(pred.grad.data)

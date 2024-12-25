@@ -4,16 +4,15 @@
 
 ## 前言
 
-笔者的研究方向是人工智能方向。笔者在研究生第一学期学习了《机器学习》这门课程，在学习本门课程的过程中，笔者接触了`PyTorch`这个深度学习框架，`PyTorch`让整个深度学习过程变得非常简单，开发者不需要关注框架本身的细节，只需要关注数据科学本身。
+笔者的研究方向是人工智能。在研究生第一学期，笔者学习了《机器学习》这门课程。在学习过程中，笔者接触到了深度学习框架 `PyTorch`。`PyTorch` 使得深度学习的整个过程变得非常简便，开发者无需关注框架的底层细节，而可以专注于数据科学本身。
 
-笔者也是在学习搭建神经网络的过程中了解到深度学习最重要的算法——**反向传播算法**，该算法也是深度学习的核心，正是该算法推动了深度学习的发展。
+在学习搭建神经网络的过程中，笔者深入了解了深度学习中最重要的算法之一——反向传播算法。反向传播算法不仅是深度学习的核心，也是推动其快速发展的关键因素。
 
-后面在《高级算法设计》这门课程中，笔者也是实现了反向传播算法，并在课程上分享了该算法。
+随后，在《高级算法设计》课程中，笔者亲自实现了反向传播算法，并在课堂上进行了分享。
 
 ![高级算法设计讲解](image.png)
 
-既然笔者已经实现了深度学习的核心——BP算法，那么笔者就在BP算法的基础上构建了一个机器学习框架`PyCarrot`.
-> 笔者的英文名是`CarrotWu`，所以就将该机器学习框架命名为`PyCarrot`。
+在成功实现了深度学习的核心——反向传播算法之后，笔者基于此算法构建了一个名为 `PyCarrot` 的机器学习框架。该框架的命名来源于笔者的英文名 `CarrotWu`，因此将其命名为 `PyCarrot`。
 
 ## 反向传播算法（自动微分）
 
@@ -112,6 +111,7 @@ requires_grad = x.requires_grad or y.requires_grad
 return Carrot(result_data, child_nodes, requires_grad, name="add")
 
 ```
+
 > 注意：使用运算符重载实现
 
 ```python
@@ -322,7 +322,6 @@ cc = torch.matmul(aa, bb)
 
 **要点2： 某个张量的梯度的`shape`是和其张量的`shape`是一样的。**
 
-
 举个例子
 
 ```python
@@ -387,7 +386,7 @@ class Model(nn.Module):
 
 ##### 定义和作用
 
-1. 神经网络的基类：`Module`是`PyTorch`中所有神经网络模块（如层、模型等）的基类。用户可以通过继承`Module`类来定义自定义的网络组件。比如可以通过继承来实现`Linear layer`和`Conv layer` 
+1. 神经网络的基类：`Module`是`PyTorch`中所有神经网络模块（如层、模型等）的基类。用户可以通过继承`Module`类来定义自定义的网络组件。比如可以通过继承来实现`Linear layer`和`Conv layer`
 2. 封装参数和结构：`Module`封装了网络的参数（通常是`Parameter`）和前向传播的计算逻辑。
 3. 模块化与复用：通过模块化设计，可以轻松构建复杂的神经网络，并复用已有的网络组件。
 
@@ -397,5 +396,178 @@ class Model(nn.Module):
 2. 层次化结构：支持嵌套，允许一个`Module`包含其他`Module`，从而构建层次化的网络结构。
 3. 前向传播定义：需要用户在子类中定义`forward`方法，指定数据如何通过模块进行前向传播。
 
-
 #### 代码实现
+
+##### 代码概览
+
+```python
+class Module(object):
+
+    def __call__(self, *args, **kwds):
+        """
+        let module object call as a function.
+        """
+        return self.forward(*args, **kwds)
+    def forward(self, *args, **kwds):
+        """
+        forward propagation for get predicted result.
+        """
+        pass
+    def parameter(self) -> list:
+        """
+        get model trained parameters to manage and optimize.
+        """
+        pass
+
+
+model = Model()
+pred = model(input)
+```
+
+`__call__() magic method`让`Module`实例可以向函数一样调用，在神经网络中，主要调用的是前向传播的逻辑`forward() method`。
+
+因为不同的网络有不同的前向传播方式，所以会在子类中实现`forward() method`。
+
+虽然不同的网络有不同的前向传播方式，但是获取参数的方式是统一的，所以会在`Module base class`中实现`parameter() method`，其作用主要是以列表的形式获取`model`中可训练/微分的参数。
+
+##### `parameter() method`的实现
+
+```python
+def parameter(self) -> list:
+    """
+    get model trained parameters to manage and optimize.
+    """
+    attributes = self.__dict__
+    parameters = []
+
+    for _, attr_value in attributes.items():
+        attr_value: Parameter | Module
+        if type(attr_value) == Parameter:
+            parameters.append(attr_value)
+            pass
+        if hasattr(attr_value, "parameter"):
+            """
+            check if current attr_value has a parameter() method.
+            that means current attr_value is a module.
+            """
+            parameters.extend(attr_value.parameter())
+            pass
+        pass
+    return parameters
+```
+
+笔者简单叙述一下:
+
+1. 获取当前模型的`property dict`
+2. 遍历`property dict`，如果`property dict`中的`value`是`Parameter class`的实例，则将`value`添加到`parameters: list`中。如果`property dict`中的`value`是`parameter() method`，则说明`value`是`Module`的一个实例，则调用`parameter() method`获取可训练/微分参数。
+
+【2】不能够理解的话，看以下一段代码：
+
+```python
+class Model(Module):
+    def __init__(self):
+        super.__init__()
+        self.layer = Linear(784, 10)
+        pass
+```
+
+在笔者定义的`Model class`中，有属性是`Linear class`的实例，而`Linear class`是继承自`Module class`，所以在`Linear class`的实例`layer`中也有`parameter() method`。
+
+### 实现`Linear class`
+
+笔者简单叙述一下：
+
+1. `Linear class` 继承自`Module class`。
+2. 在初始化阶段，初始化两个`Parameter class`实例属性。可以对照$y = w\times x + b$来理解。
+3. 实现前向传播逻辑`forward() method`。
+
+```python
+class Linear(Module):
+    def __init__(self, input_dimen, output_dimen) -> None:
+        super().__init__()
+        self.weight = Parameter(np.random.normal(0, 1, [input_dimen, output_dimen]), requires_grad=True)
+        self.bias = Parameter(np.zeros([output_dimen]), requires_grad=True)
+        pass
+
+    def forward(self, input:Carrot) -> Carrot:
+        output = input @ self.weight + self.bias
+        return output
+```
+
+## 损失函数
+
+在本框架下，笔者实现了均方误差损失函数`MSELosss()`
+给出数学表达式：
+$$\text{MSE} = \frac{1}{N} \|\mathbf{y} - \hat{\mathbf{y}}\|^2_2$$
+
+```python
+def mse_loss(predicted: Carrot, target: Carrot) -> Carrot:
+    """
+    mse: mean square error
+    """
+    # type 1: return expression, but more nodes and low speed
+    # return ((predicted - target) ** 2).mean()
+
+    # type 2: consider grad
+    number = len(predicted)
+    loss = np.mean((predicted.data - target.data) ** 2)
+    requires_grad = predicted.requires_grad or target.requires_grad
+    child_nodes = []
+    if predicted.requires_grad:
+
+        def grad_wrt_predicted(grad):
+            return 2 * (predicted.data - target.data) * grad / number
+
+        child_nodes.append((predicted, grad_wrt_predicted))
+        pass
+
+    if target.requires_grad:
+
+        def grad_wrt_target(grad):
+            return 2 * (target.data - predicted.data) * grad / number
+
+        child_nodes.append((target, grad_wrt_target))
+        pass
+
+    result_node = Carrot(
+        data=loss,
+        requires_grad=requires_grad,
+        child_nodes=child_nodes,
+        name="mse",
+    )
+    return result_node
+```
+
+
+> 注意：可以使用对`Carrot class`的基本运算来构建`MSELoss func`，但会产生更多的`Carrot`节点，`BP`的效率也会更低。
+
+## 优化器
+
+在本框架下，笔者实现了随机梯度下降（SGD）算法。
+给出数学表达式：
+$$\theta_{t+1} = \theta_t - \eta \nabla \ell(\theta_t; x_{i_t}, y_{i_t})$$
+其中$\theta$在本框架下是`Parameter class`的实例。
+
+```python
+class SGD(Optim):
+    def __init__(self, parameters: list, learning_rate=0.1, weight_decay=0.0) -> None:
+        super().__init__()
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.parameters = parameters
+        pass
+
+    def step(self):
+        for parameter in self.parameters:
+            parameter: Parameter
+            decent_value = parameter.grad.data + self.weight_decay * parameter.data
+            parameter.data -= self.learning_rate * decent_value
+            pass
+        pass
+```
+
+## PyCarrot测试
+
+1. 反向传播测试：`test_bp.ipynb`
+2. 线性回归测试：`test_linear_regression.ipynb`
+3. 模型保存和加载测试：`test_save&load.ipynb`
