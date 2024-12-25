@@ -1,7 +1,5 @@
 # PyCarrot 机器学习框架
 
-项目地址：<https://github.com/CarrotWuDev/PyCarrot>
-
 ## 前言
 
 笔者的研究方向是人工智能。在研究生第一学期，笔者学习了《机器学习》这门课程。在学习过程中，笔者接触到了深度学习框架 `PyTorch`。`PyTorch` 使得深度学习的整个过程变得非常简便，开发者无需关注框架的底层细节，而可以专注于数据科学本身。
@@ -51,12 +49,14 @@ class Tensor(object):
 
 `grad_wrt_x`用数学表示是这样：
 
-$$\frac{\partial z}{\partial x}=a*y$$
-
+$$
+\frac{\partial z}{\partial x}=a*y
+$$
 `grad_wrt_y`用数学表示是这样：
 
-$$\frac{\partial z}{\partial y}=a*x$$
-
+$$
+\frac{\partial z}{\partial y}=a*x
+$$
 用`Python`代码实现是下面这样：
 
 ```python
@@ -478,7 +478,7 @@ class Model(Module):
 笔者简单叙述一下：
 
 1. `Linear class` 继承自`Module class`。
-2. 在初始化阶段，初始化两个`Parameter class`实例属性。可以对照$y = w\times x + b$来理解。
+2. 在初始化阶段，初始化两个`Parameter class`实例属性。可以对照 $y = w\times x + b$来理解。
 3. 实现前向传播逻辑`forward() method`。
 
 ```python
@@ -498,7 +498,9 @@ class Linear(Module):
 
 在本框架下，笔者实现了均方误差损失函数`MSELosss()`
 给出数学表达式：
-$$\text{MSE} = \frac{1}{N} \|\mathbf{y} - \hat{\mathbf{y}}\|^2_2$$
+$$
+\text{MSE} = \frac{1}{N} \|\mathbf{y} - \hat{\mathbf{y}}\|^2_2
+$$
 
 ```python
 def mse_loss(predicted: Carrot, target: Carrot) -> Carrot:
@@ -545,7 +547,10 @@ def mse_loss(predicted: Carrot, target: Carrot) -> Carrot:
 
 在本框架下，笔者实现了随机梯度下降（SGD）算法。
 给出数学表达式：
-$$\theta_{t+1} = \theta_t - \eta \nabla \ell(\theta_t; x_{i_t}, y_{i_t})$$
+$$
+\theta_{t+1} = \theta_t - \eta \nabla \ell(\theta_t; x_{i_t}, y_{i_t})
+$$
+
 其中$\theta$在本框架下是`Parameter class`的实例。
 
 ```python
