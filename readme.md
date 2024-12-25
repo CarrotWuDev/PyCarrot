@@ -27,9 +27,9 @@
 
 ### 反向传播算法的实现
 
-### 常量版本（不涉及矩阵运算）
+#### 常量版本（不涉及矩阵运算）
 
-#### 知识铺垫
+##### 知识铺垫
 
 在`Pytorch`中`Tensor`数据类型构建了反向传播算法的基础。因为`Tensor class`不仅存储着数据本身，还存储着**如何传递梯度？**的信息。
 
@@ -68,7 +68,7 @@ def grad_wrt_y(grad):
     return grad*x
 ```
 
-#### 代码实现
+##### 代码实现
 
 下面是`Carrot`类的实现：
 
@@ -269,11 +269,12 @@ a.grad=5.0
 
 至此，常量版本的`BP`算法已经实现，下面我们会在常量版本的基础上构建张量版本的`BP`算法。
 
-### 张量版本
+#### 张量版本
 
-#### **要点（非常重要）**
+##### **要点（非常重要）**
 
 **要点1：使用`Numpy`来表示`Carrot`的`data`属性**
+
 使用`python`中`loop`来实现的同样维度的矩阵乘法，速度在`minute`级别（笔者跑了10分钟没跑完）。
 
 ```python
@@ -286,6 +287,9 @@ for i in range(size):
       c[i,j] += a[i,k] * b[k,j]
     pass
   pass
+
+---
+10min+
 ```
 
 使用`numpy`来实现矩阵乘法，速度在`ms`级别。
@@ -298,6 +302,7 @@ a = np.random.rand(size, size)
 b = np.random.rand(size, size)
 x = numpy.dot(a,b)
 
+---
 8.63 ms ± 2.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 ```
 
@@ -311,7 +316,8 @@ bb = torch.cuda.FloatTensor(b)
 
 cc = torch.matmul(aa, bb)
 
-38.2 μs ± 15.4 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)
+---
+70.7 μs ± 76 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)
 ```
 
 **要点2： 某个张量的梯度的`shape`是和其张量的`shape`是一样的。**
@@ -343,5 +349,53 @@ $$
 
 请查阅书籍《The Martrix Cookbook》获取更多矩阵微分相关的信息：<https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf>
 
-#### 
+### 补充：实现`Parameter class`
 
+在`Carrot class`的实现中，`self.requires_grad=False`，即说明`Carrot class`的实例默认是不可以微分的。
+
+但是在神经网络中参数实例是可微分的，并且支持`BP`算法。
+
+所以让`Carrot class`作为`Parameter class`的基类。
+
+主要做的事情就是，在`__init__()`初始化阶段更改`self.requires_grad = True`，其它全盘继承`Tensor class`。
+
+当然可以选择不用实现`Parameter class`，定义的模型的时候用`Carrot class`，只不过初始化的时候设置`self.requires_grad = True`。
+
+笔者这里补充说明`Carrot class`是为了后续文档的撰写需求。
+
+## 神经网络架构
+
+### 概括
+
+在笔者使用`PyTorch`搭建神经网络的时候，会将`PyTorch`提供的`Module`作为基类。
+
+使用以下代码实现一个简单的`Model class`
+
+```python
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        pass
+    
+    def forward(self, input):
+        pass
+```
+
+### 实现`Module class`
+
+#### `Module class`的介绍
+
+##### 定义和作用
+
+1. 神经网络的基类：`Module`是`PyTorch`中所有神经网络模块（如层、模型等）的基类。用户可以通过继承`Module`类来定义自定义的网络组件。比如可以通过继承来实现`Linear layer`和`Conv layer` 
+2. 封装参数和结构：`Module`封装了网络的参数（通常是`Parameter`）和前向传播的计算逻辑。
+3. 模块化与复用：通过模块化设计，可以轻松构建复杂的神经网络，并复用已有的网络组件。
+
+##### 主要特性
+
+1. 参数管理：`Module`可以自动管理其内部的参数（`Tensor`），并提供便捷的方法来访问和更新这些参数（如`parameter()`、`state_dict()`等）。
+2. 层次化结构：支持嵌套，允许一个`Module`包含其他`Module`，从而构建层次化的网络结构。
+3. 前向传播定义：需要用户在子类中定义`forward`方法，指定数据如何通过模块进行前向传播。
+
+
+#### 代码实现
