@@ -10,7 +10,7 @@ class SGD(Optim):
         self.weight_decay = weight_decay
         self.parameters = parameters
         pass
-
+    
     def step(self):
         for parameter in self.parameters:
             parameter: Parameter
