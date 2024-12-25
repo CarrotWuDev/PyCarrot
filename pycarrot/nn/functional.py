@@ -31,29 +31,7 @@ def softmax(operand: Carrot) -> Carrot:
     """
     softmax: activation.
     """
-    exp_data = np.exp(operand.data - np.max(operand.data, axis=-1, keepdims=True))
-    result_data = exp_data / np.sum(exp_data, axis=-1, keepdims=True)
-    requires_grad = operand.requires_grad
-    child_nodes = []
-    if requires_grad:
-
-        def grad_wrt_operand(grad: np.ndarray) -> np.ndarray:
-            s = result_data.reshape(-1, 1)
-            current_operand_grad = (s * (np.eye(s.shape[0]) - s.T)) * grad
-            # dimen_gap = current_operand_grad.ndim - operand.data.ndim
-            # for _ in range(dimen_gap):
-            #     current_operand_grad = current_operand_grad.sum(axis=0)
-            return current_operand_grad
-
-        child_nodes.append((operand, grad_wrt_operand))
-
-    result_node = Carrot(
-        data=result_data,
-        requires_grad=requires_grad,
-        child_nodes=child_nodes,
-        name="softmax",
-    )
-    return result_node
+    pass
 
 
 def tanh(operand: Carrot) -> Carrot:
@@ -140,4 +118,8 @@ def mse_loss(predicted: Carrot, target: Carrot) -> Carrot:
 
 
 def cross_entropy_loss(predicted: Carrot, target: Carrot) -> Carrot:
+    pass
+
+
+if __name__ == "__main__":
     pass
