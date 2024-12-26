@@ -1,6 +1,12 @@
 # PyCarrot 机器学习框架
 
+`PyCarrot` 简单轻巧，适合教育和学习。
+
+`PyCarrot`是一个运行在`CPU`上的机器学习框架，你可以像使用`PyTorch`一样使用`PyCarrot`。
+
 项目地址：https://github.com/CarrotWuDev/PyCarrot
+
+欢迎 `Star`~
 
 **使用代码请注明出处**
 
