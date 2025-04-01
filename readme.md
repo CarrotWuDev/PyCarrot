@@ -62,11 +62,13 @@ class Tensor(object):
 $$
 \frac{\partial z}{\partial x}=a*y
 $$
+
 `grad_wrt_y`用数学表示是这样：
 
 $$
 \frac{\partial z}{\partial y}=a*x
 $$
+
 用`Python`代码实现是下面这样：
 
 ```python
@@ -255,6 +257,7 @@ x.grad=4.0
 ```
 
 测试2：
+
 $$
 a = 2\\
 x = 2 \times a\\
@@ -507,7 +510,8 @@ class Linear(Module):
 ## 损失函数
 
 在本框架下，笔者实现了均方误差损失函数`MSELosss()`
-给出数学表达式：
+给出数学表达式
+
 $$
 \text{MSE} = \frac{1}{N} \|\mathbf{y} - \hat{\mathbf{y}}\|^2_2
 $$
@@ -557,6 +561,7 @@ def mse_loss(predicted: Carrot, target: Carrot) -> Carrot:
 
 在本框架下，笔者实现了随机梯度下降（SGD）算法。
 给出数学表达式：
+
 $$
 \theta_{t+1} = \theta_t - \eta \nabla \ell(\theta_t; x_{i_t}, y_{i_t})
 $$
