@@ -355,7 +355,6 @@ b = [[1], [1], [1]]
 $$
 S = AB\\
 \frac{\partial S}{\partial A} = \text{grad}B^T\\
-
 \frac{\partial S}{\partial B} = A^T \text{grad}
 $$
 
